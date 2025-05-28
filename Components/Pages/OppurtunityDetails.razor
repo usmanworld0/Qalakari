@@ -1,0 +1,415 @@
+@page "/OpportunityDetails/{Id:int}"
+@using Qalakar.Data
+@inject OpportunityService OpportunityService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<Navbar2 />
+
+<div class="container mt-4">
+    @if (IsLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (Opportunity == null)
+    {
+        <div class="alert alert-danger" role="alert">
+            Opportunity not found.
+        </div>
+    }
+    else
+    {
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="@BuildUrl("/opportunities")">Browse Opportunities</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Opportunity.Title</li>
+            </ol>
+        </nav>
+
+        <!-- Opportunity Details -->
+        <div class="card shadow-sm mb-4">
+            <div class="row g-0">
+                <div class="col-md-6">
+                    <img src="https://images.unsplash.com/photo-1519741497487-e288fb19713f?w=600" class="card-img-top img-fluid rounded-start" alt="@Opportunity.Title" style="max-height: 400px; object-fit: cover;" />
+                </div>
+                <div class="col-md-6">
+                    <div class="card-body">
+                        <h1 class="card-title mb-3">@Opportunity.Title</h1>
+                        <p class="text-muted">Posted by @Opportunity.UserName</p>
+                        <p class="text-muted"><i class="fas fa-map-marker-alt"></i> @Opportunity.Location</p>
+                        <p class="text-danger fw-bold">Budget: PKR @Opportunity.Budget</p>
+                        <p>Event Type: @Opportunity.EventType</p>
+                        <p class="description">@Opportunity.Description</p>
+                        <p><strong>Contact:</strong> <a href="mailto:@Opportunity.ContactEmail" class="text-dark">@Opportunity.ContactEmail</a></p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="mailto:@Opportunity.ContactEmail" class="btn btn-primary">
+                                <i class="bi bi-envelope me-2"></i>Contact via Email
+                            </a>
+                            <a href="@BuildUrl("/opportunities")" class="btn btn-outline-secondary">Back to Browse</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Dates Calendar -->
+        <div class="mt-5">
+            <h3 class="section-title">Event Dates</h3>
+            <div class="calendar-container shadow-sm">
+                <div class="calendar-header">
+                    <button class="btn btn-outline-secondary" @onclick="PreviousMonth"><i class="fas fa-chevron-left"></i> Previous</button>
+                    <span class="month-title">@currentMonth.ToString("MMMM yyyy")</span>
+                    <button class="btn btn-outline-secondary" @onclick="NextMonth">Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-day-header">Sun</div>
+                    <div class="calendar-day-header">Mon</div>
+                    <div class="calendar-day-header">Tue</div>
+                    <div class="calendar-day-header">Wed</div>
+                    <div class="calendar-day-header">Thu</div>
+                    <div class="calendar-day-header">Fri</div>
+                    <div class="calendar-day-header">Sat</div>
+                    @foreach (var day in GetCalendarDays())
+                    {
+                        <div class="calendar-day @(eventDates.Contains(day) ? "available" : "")"
+                             style="@(day.Month != currentMonth.Month ? "opacity: 0.5;" : "")">
+                            @day.Day
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    :root {
+        --accent: #AF8B65;
+        --bg-light: #F7ECE1;
+        --text-dark: #3F2A0E;
+        --text-muted: #9D7967;
+        --card-bg: rgba(247, 236, 225, 0.8);
+        --glass-bg: rgba(243, 227, 208, 0.2);
+        --glass-border: rgba(175, 139, 101, 0.3);
+        --highlight: #4F2A1C;
+        --transition: all 0.3s ease;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-light);
+        color: var(--text-dark);
+    }
+
+    .container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .breadcrumb {
+        background: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 0.5rem 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .breadcrumb-item a {
+        color: var(--text-dark);
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .breadcrumb-item a:hover {
+        color: var(--accent);
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: none;
+        border-radius: 10px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-img-top {
+        border-radius: 10px 0 0 10px;
+        object-fit: cover;
+        max-height: 400px;
+        width: 100%;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    .card-title {
+        color: var(--text-dark);
+        font-weight: 700;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .text-muted {
+        color: var(--text-muted) !important;
+        font-size: 0.9rem;
+    }
+
+    .text-danger {
+        color: var(--highlight) !important;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .description {
+        font-size: 1rem;
+        line-height: 1.6;
+        color: var(--text-dark);
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        border: none;
+        color: var(--text-dark);
+        border-radius: 20px;
+        padding: 0.5rem 1.5rem;
+        transition: var(--transition);
+    }
+
+    .btn-primary:hover {
+        background: var(--text-muted);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(175, 139, 101, 0.4);
+    }
+
+    .btn-outline-secondary {
+        color: var(--text-dark);
+        border-color: var(--text-dark);
+        border-radius: 20px;
+        padding: 0.5rem 1.5rem;
+        transition: var(--transition);
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--text-dark);
+        color: var(--bg-light);
+        transform: translateY(-2px);
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        position: relative;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 4px;
+        background: var(--accent);
+        border-radius: 2px;
+    }
+
+    .calendar-container {
+        background: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 1.5rem;
+        backdrop-filter: blur(5px);
+    }
+
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .month-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        text-align: center;
+    }
+
+    .calendar-day-header {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding: 0.5rem;
+    }
+
+    .calendar-day {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+        border-radius: 5px;
+        transition: var(--transition);
+        cursor: default;
+    }
+
+    .calendar-day.available {
+        background: var(--accent);
+        color: var(--text-dark);
+        font-weight: 500;
+    }
+
+    .calendar-day.available:hover {
+        background: var(--text-muted);
+        transform: scale(1.1);
+    }
+
+    .calendar-day:not(.available):hover {
+        background: var(--glass-bg);
+    }
+
+    .spinner-border {
+        width: 2rem;
+        height: 2rem;
+        border: 0.25rem solid var(--accent);
+        border-top: 0.25rem solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .card-img-top {
+            border-radius: 10px 10px 0 0;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+        }
+
+        .calendar-day {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .calendar-day-header {
+            font-size: 0.8rem;
+        }
+
+        .btn-primary, .btn-outline-secondary {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Opportunity? Opportunity { get; set; }
+    private bool IsLoading = true;
+    private DateTime currentMonth = DateTime.Today;
+    private List<DateTime> eventDates = new();
+    private int userId = 0;
+    private string userEmail = "";
+    private string fullName = "User";
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+        if (int.TryParse(query["userId"], out int id))
+        {
+            userId = id;
+        }
+        userEmail = query["email"] ?? "";
+        fullName = query["fullName"] ?? "User";
+
+        try
+        {
+            Opportunity = await OpportunityService.GetOpportunityByIdAsync(Id);
+            if (Opportunity != null && !string.IsNullOrEmpty(Opportunity.EventDates))
+            {
+                eventDates = Opportunity.EventDates.Split(',')
+                    .Select(d => DateTime.TryParse(d, out var date) ? date : DateTime.MinValue)
+                    .Where(d => d != DateTime.MinValue)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading opportunity: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private string BuildUrl(string basePath)
+    {
+        var queryParams = new List<string>();
+        if (userId > 0)
+            queryParams.Add($"userId={userId}");
+        if (!string.IsNullOrEmpty(userEmail))
+            queryParams.Add($"email={Uri.EscapeDataString(userEmail)}");
+        if (!string.IsNullOrEmpty(fullName))
+            queryParams.Add($"fullName={Uri.EscapeDataString(fullName)}");
+
+        var queryString = string.Join("&", queryParams);
+        return string.IsNullOrEmpty(queryString) ? basePath : $"{basePath}?{queryString}";
+    }
+
+    private List<DateTime> GetCalendarDays()
+    {
+        var days = new List<DateTime>();
+        var firstDayOfMonth = new DateTime(currentMonth.Year, currentMonth.Month, 1);
+        var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+        var startDay = firstDayOfMonth.AddDays(-(int)firstDayOfMonth.DayOfWeek);
+
+        for (var day = startDay; day <= lastDayOfMonth.AddDays(6 - (int)lastDayOfMonth.DayOfWeek); day = day.AddDays(1))
+        {
+            days.Add(day);
+        }
+        return days;
+    }
+
+    private void PreviousMonth()
+    {
+        currentMonth = currentMonth.AddMonths(-1);
+    }
+
+    private void NextMonth()
+    {
+        currentMonth = currentMonth.AddMonths(1);
+    }
+}

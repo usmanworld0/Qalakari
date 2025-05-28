@@ -1,0 +1,606 @@
+﻿@page "/"
+@using Qalakar.Data
+@inject NavigationManager NavigationManager
+@inject PhotoService PhotoService
+
+<style>
+    :root {
+        --accent: #AF8B65;
+        --bg-light: #F7ECE1;
+        --text-dark: #3F2A0E;
+        --text-muted: #9D7967;
+        --card-bg: rgba(247, 236, 225, 0.8);
+        --glass-bg: rgba(243, 227, 208, 0.2);
+        --glass-border: rgba(175, 139, 101, 0.3);
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-light);
+        color: var(--text-dark);
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    .hero-section {
+        background: linear-gradient(135deg, var(--bg-light) 0%, #D3C2AF 100%);
+        padding: 7rem 0;
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+        opacity: 0.5;
+        z-index: 1;
+    }
+    .hero-section .container {
+        position: relative;
+        z-index: 10;
+    }
+    .hero-title {
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text-dark);
+    }
+    .hero-subtitle {
+        max-width: 700px;
+        margin: 0 auto;
+        color: var(--text-muted);
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        color: var(--text-dark);
+    }
+    .btn-primary:hover {
+        background: #9D7967;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(175, 139, 101, 0.4);
+    }
+    .btn-outline-light {
+        border-color: var(--text-dark);
+        color: var(--text-dark);
+        border-radius: 50px;
+        padding: 0.75rem 2rem;
+        transition: all 0.3s ease;
+    }
+    .btn-outline-light:hover {
+        background: var(--text-dark);
+        color: var(--bg-light);
+        transform: translateY(-2px);
+    }
+
+    .search-section {
+        background: var(--bg-light);
+        padding: 4rem 0;
+    }
+    .search-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    .search-card:hover {
+        transform: translateY(-5px);
+    }
+    .form-select, .form-control {
+        border-radius: 10px;
+        background: rgba(247, 236, 225, 0.9);
+        border: 1px solid var(--glass-border);
+        transition: all 0.3s ease;
+        color: var(--text-dark);
+        height: 3rem;
+        padding: 0 1rem;
+        font-size: 0.95rem;
+    }
+    .form-select:focus, .form-control:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 0.2rem rgba(175, 139, 101, 0.25);
+    }
+    .input-group button {
+        border-radius: 10px !important;
+    }
+    .search-btn {
+        height: 3rem;
+        padding: 0 1.5rem;
+        background: var(--accent);
+        border: none;
+        font-size: 0.95rem;
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+    }
+    .search-btn:hover {
+        background: #9D7967;
+        transform: translateY(-2px);
+    }
+    .reset-btn {
+        height: 3rem;
+        background: var(--text-muted);
+        border: none;
+        padding: 0 1.5rem;
+        font-size: 0.95rem;
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+    }
+    .reset-btn:hover {
+        background: var(--accent);
+        transform: translateY(-2px);
+    }
+    .input-group {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .photos-section {
+        padding: 4rem 0;
+        background: var(--bg-light);
+    }
+    .empty-state {
+        background: var(--card-bg);
+        border: 1px dashed var(--glass-border);
+        border-radius: 15px;
+        padding: 2.5rem;
+        text-align: center;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .empty-state h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+    }
+    .empty-state p {
+        font-size: 1rem;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+    .empty-state a {
+        text-decoration: none;
+    }
+    .empty-state i {
+        margin-bottom: 1rem;
+    }
+
+    .testimonials-section {
+        background: linear-gradient(135deg, var(--accent) 0%, #D3C2AF 100%);
+        padding: 5rem 0;
+        position: relative;
+    }
+    .stack-img {
+        width: 200px;
+        height: 200px;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        transition: transform 0.4s ease;
+        object-fit: cover;
+    }
+    .stack-img:hover {
+        transform: scale(1.1);
+    }
+
+    .cta-section {
+        padding: 5rem 0;
+        background: var(--bg-light);
+    }
+    .cta-input-group {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    .cta-input {
+        border-radius: 50px 0 0 50px !important;
+        border: none;
+        background: #F7ECE1;
+        padding: 0.75rem 1.5rem;
+        color: var(--text-dark);
+    }
+    .cta-button {
+        border-radius: 0 50px 50px 0 !important;
+        background: var(--accent);
+        border: none;
+        padding: 0.75rem 2rem;
+        color: var(--text-dark);
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .cta-button:hover {
+        background: #9D7967;
+        transform: translateY(-2px);
+    }
+
+    .whatsapp-float {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: var(--accent);
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        z-index: 1000;
+    }
+    .whatsapp-float:hover {
+        transform: scale(1.15);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+    .whatsapp-float img {
+        width: 35px;
+        height: 35px;
+    }
+
+    .fadeInUp {
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    @@keyframes fadeInUp {
+        0% { transform: translateY(20px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+
+    .welcome-alert {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 2rem auto;
+        max-width: 600px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        position: relative;
+        color: var(--text-dark);
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+    .welcome-alert h4,
+    .welcome-alert p {
+        color: inherit;
+    }
+    .welcome-alert .close-btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+    .welcome-alert .close-btn:hover {
+        color: var(--accent);
+    }
+
+    .footer {
+        background: linear-gradient(135deg, var(--text-dark) 0%, #5A3F1B 100%);
+        color: var(--bg-light);
+        padding: 4rem 0 2rem;
+        position: relative;
+    }
+    .footer a {
+        color: var(--bg-light);
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+    .footer a:hover {
+        color: var(--accent);
+    }
+    .footer h5 {
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: var(--bg-light);
+    }
+    .footer ul {
+        list-style: none;
+        padding: 0;
+    }
+    .footer ul li {
+        margin-bottom: 0.75rem;
+    }
+    .footer .social-icons a {
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        color: var(--bg-light);
+        transition: color 0.3s ease;
+    }
+    .footer .social-icons a:hover {
+        color: var(--accent);
+    }
+    .footer .newsletter-form {
+        max-width: 400px;
+        margin: 1rem 0;
+    }
+    .footer .newsletter-form input {
+        border-radius: 50px 0 0 50px;
+        border: none;
+        background: rgba(247, 236, 225, 0.9);
+        padding: 0.75rem 1.5rem;
+        color: var(--text-dark);
+    }
+    .footer .newsletter-form button {
+        border-radius: 0 50px 50px 0;
+        background: var(--accent);
+        border: none;
+        padding: 0.75rem 1.5rem;
+        color: var(--text-dark);
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .footer .newsletter-form button:hover {
+        background: #9D7967;
+    }
+    .footer-bottom {
+        border-top: 1px solid rgba(247, 236, 225, 0.2);
+        padding-top: 1.5rem;
+        margin-top: 2rem;
+        text-align: center;
+        color: var(--text-muted);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        background: var(--card-bg);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        transition: transform 0.4s ease, box-shadow 0.4s ease;
+    }
+    .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+    .card-img-top {
+        height: 250px;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+    .card:hover .card-img-top {
+        transform: scale(1.05);
+    }
+    .card-body {
+        padding: 1.5rem;
+    }
+    .card-title {
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+    .card-text {
+        color: var(--text-muted);
+    }
+</style>
+
+<!-- Navbar -->
+<Navbar />
+
+<!-- Main Content -->
+<main class="mt-5 pt-3">
+    <!-- Welcome Message -->
+    @if (showWelcomeMessage)
+    {
+        <div class="welcome-alert text-center fadeInUp">
+            <button class="close-btn" @onclick="HideWelcomeMessage">×</button>
+            <h4>Welcome, @firstName!</h4>
+            <p>Your journey with Qalakar begins! Explore our curated selection of photos to inspire your next project.</p>
+        </div>
+    }
+
+    <!-- Hero Section -->
+    <section class="hero-section text-center text-white">
+        <div class="container">
+            <h1 class="hero-title display-3 mb-4 fadeInUp">Discover Exceptional Photography with Qalakar</h1>
+            <p class="hero-subtitle lead mb-5 fadeInUp" style="animation-delay: 0.2s;">Explore stunning photos captured by our handpicked photographers, ready to inspire your creativity.</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/signup" class="btn btn-primary btn-lg">Become a Qalakar!</a>
+                <a href="/login" class="btn btn-outline-light btn-lg">Already a Qalakar?</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search Bar -->
+    <section class="search-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="search-card fadeInUp">
+                        <h3 class="text-center mb-4 text-dark">Find Your Perfect Photos</h3>
+                        <p class="text-center text-muted mb-4">Search by title or photographer to discover stunning images for your project.</p>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search by title..." @bind="searchTitle" @bind:event="oninput" />
+                            <select class="form-select" @bind="selectedOwner">
+                                <option value="">Select Photographer...</option>
+                                @foreach (var owner in owners)
+                                {
+                                    <option value="@owner">@owner</option>
+                                }
+                            </select>
+                            <button class="btn btn-primary search-btn" @onclick="Search">Search</button>
+                            <button class="btn reset-btn" @onclick="ResetSearch">Reset</button>
+                        </div>
+                        <div class="text-center text-muted small">
+                            Trending: Wedding photos, Landscape photography
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Photos -->
+    <section class="photos-section">
+        <div class="container">
+            <h2 class="text-center mb-5 text-dark fadeInUp">@(isSearchApplied ? "Search Results" : "Featured Photos")</h2>
+            <p class="text-center text-muted mb-5">Browse some of the most stunning photos on Qalakar, showcasing the creativity of our talented community.</p>
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (filteredPhotos.Count == 0)
+            {
+                <div class="empty-state fadeInUp">
+                    <i class="bi bi-image" style="font-size: 3rem; color: var(--accent);"></i>
+                    <h3>@(isSearchApplied ? "No Photos Found" : "No Photos Available")</h3>
+                    <p>@(isSearchApplied ? "No photos match your search criteria. Try adjusting your filters." : "No photos have been uploaded yet. Be the first to share your work!")</p>
+                    <a href="/signup" class="btn btn-primary">Upload Photos</a>
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var photo in filteredPhotos)
+                    {
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 fadeInUp">
+                                <img src="@photo.ImageUrl" class="card-img-top" alt="@photo.Title" />
+                                <div class="card-body">
+                                    <h5 class="card-title">@photo.Title</h5>
+                                    <p class="card-text">Uploaded by: @photo.UploadedBy</p>
+                                    <a href="/ViewPhotos" class="btn btn-primary">View All Photos</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials-section text-white">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6 fadeInUp">
+                    <h2 class="mb-4">Capture Your Moments with Confidence</h2>
+                    <p class="lead mb-4">Our talented photographers specialize in turning fleeting moments into lasting memories. From weddings to corporate events, find the perfect creative to bring your vision to life.</p>
+                    <a href="/signup" class="btn btn-light">Start Your Journey</a>
+                </div>
+                <div class="col-md-6 fadeInUp" style="animation-delay: 0.2s;">
+                    <div class="d-flex flex-column align-items-center">
+                        <img src="https://images.unsplash.com/photo-1519742866993-66d3cfef4bbd?w=600&auto=format&fit=crop&q=60" class="stack-img mb-3" alt="Photo moment" />
+                        <div class="d-flex justify-content-center gap-3">
+                            <img src="https://images.unsplash.com/photo-1615632386447-50385a6b7fdf?w=600&auto=format&fit=crop&q=60" class="stack-img" alt="Photo" />
+                            <img src="https://plus.unsplash.com/premium_photo-1664790560123-c5f839457591?w=600&auto=format&fit=crop&q=60" class="stack-img" alt="Event photo" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="cta-section text-center">
+        <div class="container">
+            <h2 class="fw-bold mb-4 text-dark fadeInUp">Ready to Immortalize Your Story?</h2>
+            <p class="lead mb-5 text-muted fadeInUp" style="animation-delay: 0.2s;">Join Qalakar today and connect with world-class photographers who turn your moments into art.</p>
+            <div class="cta-input-group fadeInUp" style="animation-delay: 0.4s;">
+                <div class="input-group shadow-sm">
+                    <input type="email" class="form-control cta-input" placeholder="Enter your email to join" />
+                    <button class="btn cta-button">Join Qalakar</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/923001234567" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
+        <img src="https://img.freepik.com/premium-photo/whatsapp-logo_1080029-96.jpg?semt=ais_hybrid&w=740" alt="WhatsApp" style="border-radius:50%;height:35px;width:35px" />
+    </a>
+</main>
+
+@code {
+    private string searchTitle = "";
+    private string selectedOwner = "";
+    private bool showWelcomeMessage = false;
+    private string firstName = "";
+    private bool isLoading = true;
+    private bool isSearchApplied = false;
+    private List<Photo> allPhotos = new();
+    private List<Photo> filteredPhotos = new();
+    private List<string> owners = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+        if (query["signup"] == "success")
+        {
+            showWelcomeMessage = true;
+            firstName = query["firstName"] ?? "User";
+        }
+
+        try
+        {
+            allPhotos = await PhotoService.GetAllPhotosAsync();
+            filteredPhotos = allPhotos.Take(3).ToList();
+            owners = allPhotos.Select(p => p.UploadedBy).Distinct().OrderBy(o => o).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load photos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void HideWelcomeMessage()
+    {
+        showWelcomeMessage = false;
+    }
+
+    private void Search()
+    {
+        isSearchApplied = true;
+        filteredPhotos = FilterPhotos();
+        StateHasChanged();
+    }
+
+    private void ResetSearch()
+    {
+        searchTitle = "";
+        selectedOwner = "";
+        isSearchApplied = false;
+        filteredPhotos = allPhotos.Take(3).ToList();
+        StateHasChanged();
+    }
+
+    private List<Photo> FilterPhotos()
+    {
+        var filtered = allPhotos.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(searchTitle))
+        {
+            filtered = filtered.Where(p => p.Title != null && p.Title.ToLower().Contains(searchTitle.ToLower()));
+        }
+
+        if (!string.IsNullOrEmpty(selectedOwner))
+        {
+            filtered = filtered.Where(p => p.UploadedBy == selectedOwner);
+        }
+
+        return filtered.ToList();
+    }
+}

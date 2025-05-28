@@ -1,0 +1,151 @@
+/* Root variables for the color scheme */
+:root {
+    --accent: #AF8B65; /* Light Taupe as primary accent */
+    --bg-light: #F7ECE1; /* Alabaster for background */
+    --text-dark: #3F2A0E; /* Brown Tumbleweed for dark text */
+    --text-muted: #9D7967; /* Moca Mousse for muted text */
+    --card-bg: rgba(247, 236, 225, 0.8); /* Alabaster with transparency */
+    --glass-bg: rgba(243, 227, 208, 0.2); /* Soft blend of Alabaster and Dark Vanilla */
+    --glass-border: rgba(175, 139, 101, 0.3); /* Light Taupe for border */
+}
+
+/* Minimal CSS to ensure full-page rendering */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    font-family: 'Inter', sans-serif;
+}
+
+.page {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Override Bootstrap Navbar */
+.navbar {
+    background-color: var(--bg-light) !important;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.navbar-brand, .nav-link {
+    color: var(--text-dark) !important;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: var(--accent) !important;
+}
+
+.navbar-toggler-icon {
+    filter: invert(0.2); /* Adjusts icon to match dark text */
+}
+
+/* Override Bootstrap Sections and Cards */
+.bg-dark {
+    background-color: var(--bg-light) !important;
+}
+
+.bg-light {
+    background-color: var(--card-bg) !important;
+}
+
+/* Custom class for Call to Action section */
+.bg-accent {
+    background-color: var(--accent);
+}
+
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    color: var(--text-dark);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.card-text, .card-subtitle {
+    color: var(--text-muted) !important;
+}
+
+/* Override Bootstrap Buttons */
+.btn-primary {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    border-radius: 50px;
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #9D7967; /* Moca Mousse for hover */
+    border-color: #9D7967;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(175, 139, 101, 0.4);
+}
+
+.btn-outline-light {
+    color: var(--text-dark);
+    border-color: var(--text-dark);
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-light:hover {
+    background-color: var(--accent);
+    color: var(--text-dark);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.btn-light {
+    background-color: var(--accent);
+    color: var(--text-dark);
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.btn-light:hover {
+    background-color: #9D7967; /* Moca Mousse for hover */
+    color: var(--text-dark);
+    transform: translateY(-2px);
+}
+
+/* Override Bootstrap Input */
+.form-control {
+    background-color: rgba(247, 236, 225, 0.9); /* Alabaster with transparency */
+    color: var(--text-dark);
+    border-color: var(--glass-border);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+}
+
+.form-control:focus {
+    background-color: rgba(247, 236, 225, 0.9);
+    color: var(--text-dark);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 0.2rem rgba(175, 139, 101, 0.25);
+}
+
+/* General Text */
+h1, h2, h3, h4, h5, h6, p, a {
+    color: var(--text-dark);
+}
+
+a:hover {
+    color: #9D7967; /* Moca Mousse for hover */
+}

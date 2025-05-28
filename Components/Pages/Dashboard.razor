@@ -1,0 +1,1126 @@
+@page "/dashboard"
+@using Qalakar.Data
+@using System.Web
+@inject NavigationManager NavigationManager
+@inject UserService UserService
+@inject GigService GigService
+@inject OpportunityService OpportunityService
+@inject PhotoService PhotoService
+@rendermode InteractiveServer
+
+<!-- Navbar -->
+<Navbar2 />
+
+<style>
+    :root {
+        --navbar-bg: #4A2727;
+        --accent: #AF8B65;
+        --bg-light: #F7ECE1;
+        --text-dark: #3F2A0E;
+        --text-muted: #9D7967;
+        --dark-vanilla: #D3C2AF;
+        --card-bg: rgba(247, 236, 225, 0.8);
+        --glass-bg: rgba(243, 227, 208, 0.2);
+        --glass-border: rgba(175, 139, 101, 0.3);
+        --highlight: #4F2A1C;
+        --transition: all 0.3s ease;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-light);
+        color: var(--text-dark);
+        margin: 0;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .section {
+        padding: 4rem 0;
+    }
+
+    .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        position: relative;
+        padding-bottom: 0.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background: var(--accent);
+        border-radius: 2px;
+    }
+
+    .banner-section {
+        background: linear-gradient(135deg, var(--bg-light) 0%, var(--dark-vanilla) 100%);
+        padding: 6rem 0;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        border-radius: 0 0 30px 30px;
+        margin-bottom: 2rem;
+    }
+
+    .banner-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        opacity: 0.5;
+        z-index: 1;
+    }
+
+    .banner-section .container {
+        position: relative;
+        z-index: 10;
+    }
+
+    .banner-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.02em;
+    }
+
+    .banner-subtitle {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        max-width: 600px;
+        margin: 0 auto 2rem;
+        line-height: 1.6;
+    }
+
+    .welcome-alert {
+        background: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 0 auto 2rem;
+        max-width: 600px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        position: relative;
+        border-left: 4px solid var(--accent);
+        animation: fadeInDown 0.6s ease-out, bounceIn 0.8s ease-out 0.6s;
+    }
+
+    .welcome-icon {
+        width: 36px;
+        height: 36px;
+        background: rgba(175, 139, 101, 0.1);
+        color: var(--accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+    }
+
+    .welcome-user {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-right: 0.5rem;
+    }
+
+    .welcome-message {
+        font-size: 1rem;
+        color: var(--text-muted);
+    }
+
+    .welcome-alert .close-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .welcome-alert .close-btn:hover {
+        color: var(--accent);
+    }
+
+    .search-section {
+        padding: 2rem 0;
+        margin-top: 0;
+        position: relative;
+        z-index: 10;
+    }
+
+    .search-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(5px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: var(--transition);
+        animation: fadeInUp 0.6s ease-out 0.5s forwards;
+    }
+
+    .search-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .search-card h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .input-group {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .form-select, .form-control {
+        height: 3rem;
+        border-radius: 10px;
+        border: 1px solid var(--glass-border);
+        padding: 0 1rem;
+        font-size: 0.95rem;
+        color: var(--text-dark);
+        background: var(--card-bg);
+        transition: var(--transition);
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .form-select:focus, .form-control:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 0.2rem rgba(175, 139, 101, 0.25);
+        outline: none;
+    }
+
+    .search-btn {
+        height: 3rem;
+        width: 3rem;
+        background: var(--accent);
+        border: none;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+    }
+
+    .search-btn:hover {
+        background: var(--text-muted);
+        transform: translateY(-2px);
+    }
+
+    .search-btn i {
+        font-size: 1.25rem;
+        color: var(--text-dark);
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: var(--transition);
+        height: 100%;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-img-top {
+        height: 200px;
+        object-fit: cover;
+        transition: var(--transition);
+    }
+
+    .card:hover .card-img-top {
+        transform: scale(1.05);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.75rem;
+    }
+
+    .card-text {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+
+    .card-price {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 1rem;
+    }
+
+    .stats-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        justify-content: center;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        flex: 1;
+        min-width: 200px;
+        max-width: 300px;
+        text-align: center;
+        transition: var(--transition);
+        animation: fadeInScale 0.7s ease-out forwards;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(175, 139, 101, 0.1);
+        color: var(--accent);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+    }
+
+    .stat-icon i {
+        font-size: 1.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    .empty-state {
+        background: var(--card-bg);
+        border: 1px dashed var(--glass-border);
+        border-radius: 15px;
+        padding: 2.5rem;
+        text-align: center;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        font-size: 1rem;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-state a {
+        text-decoration: none;
+    }
+
+    .empty-state i {
+        margin-bottom: 1rem;
+    }
+
+    .testimonials-section {
+        background: linear-gradient(135deg, var(--accent) 0%, var(--text-muted) 100%);
+        padding: 4rem 0;
+        text-align: center;
+    }
+
+    .testimonials-section h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+    }
+
+    .testimonials-section .lead {
+        font-size: 1.25rem;
+        color: var(--text-dark);
+        margin-bottom: 2rem;
+    }
+
+    .stack-img {
+        width: 180px;
+        height: 180px;
+        border-radius: 15px;
+        object-fit: cover;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        transition: var(--transition);
+    }
+
+    .stack-img:hover {
+        transform: scale(1.1);
+    }
+
+    .cta-section {
+        text-align: center;
+        padding: 4rem 0;
+    }
+
+    .cta-input-group {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .cta-input {
+        border-radius: 50px 0 0 50px;
+        border: none;
+        background: var(--card-bg);
+        padding: 0.75rem 1.5rem;
+        color: var(--text-dark);
+        font-size: 0.95rem;
+    }
+
+    .cta-button {
+        border-radius: 0 50px 50px 0;
+        background: var(--accent);
+        border: none;
+        padding: 0.75rem 2rem;
+        color: var(--text-dark);
+        font-weight: 500;
+        transition: var(--transition);
+        animation: bounceIn 0.8s ease-out;
+    }
+
+    .cta-button:hover {
+        background: var(--text-muted);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(175, 139, 101, 0.4);
+    }
+
+    .btn {
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        transition: var(--transition);
+        text-transform: none;
+        font-size: 0.95rem;
+        animation: bounceIn 0.8s ease-out;
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        border: none;
+        color: var(--text-dark);
+    }
+
+    .btn-primary:hover {
+        background: var(--text-muted);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(175, 139, 101, 0.4);
+    }
+
+    .btn-outline-light {
+        border: 1px solid var(--text-dark);
+        color: var(--text-dark);
+        background: transparent;
+    }
+
+    .btn-outline-light:hover {
+        background: var(--accent);
+        color: var(--text-dark);
+        border-color: var(--accent);
+    }
+
+    .whatsapp-float {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: var(--accent);
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        transition: var(--transition);
+        z-index: 1000;
+        animation: rotatePulse 2s infinite;
+    }
+
+    .whatsapp-float:hover {
+        transform: scale(1.15);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .whatsapp-float i {
+        font-size: 1.75rem;
+        color: var(--text-dark);
+    }
+
+    .fadeInUp {
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    .fadeInDown {
+        animation: fadeInDown 0.6s ease-out forwards;
+    }
+
+    .slideInFromLeft {
+        animation: slideInFromLeft 0.7s ease-out forwards;
+    }
+
+    .slideInFromRight {
+        animation: slideInFromRight 0.7s ease-out forwards;
+    }
+
+    .fadeInScale {
+        animation: fadeInScale 0.7s ease-out forwards;
+    }
+
+    .bounceIn {
+        animation: bounceIn 0.8s ease-out;
+    }
+
+    .rotatePulse {
+        animation: rotatePulse 2s infinite;
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes slideInFromLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes slideInFromRight {
+        from {
+            opacity: 0;
+            transform: translateX(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes fadeInScale {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @@keyframes bounceIn {
+        0% { transform: scale(0.9); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    @@keyframes rotatePulse {
+        0% { transform: rotate(0deg); }
+        50% { transform: rotate(5deg); }
+        100% { transform: rotate(0deg); }
+    }
+
+    @@media (max-width: 768px) {
+        .banner-title {
+            font-size: 2.5rem;
+        }
+
+        .banner-subtitle {
+            font-size: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+        }
+
+        .search-card {
+            padding: 1.5rem;
+        }
+
+        .input-group .form-select, .input-group .form-control {
+            min-width: 100%;
+        }
+
+        .search-btn {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        .stat-card {
+            min-width: 100%;
+        }
+
+        .stack-img {
+            width: 120px;
+            height: 120px;
+        }
+
+        .card-img-top {
+            height: 150px;
+        }
+
+        .btn {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
+
+<main>
+    <!-- Banner Section -->
+    <section class="banner-section">
+        <div class="container text-center">
+            <h1 class="banner-title fadeInUp">Photography Dashboard</h1>
+            <p class="banner-subtitle fadeInUp" style="animation-delay: 0.2s;">Manage your portfolio, gigs, and opportunities</p>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="@BuildUrl("/AddGigs")" class="btn btn-primary mt-4 bounceIn" style="animation-delay: 0.4s;">Add Gigs</a>
+                <a href="@BuildUrl("/AddOpportunities")" class="btn btn-primary mt-4 bounceIn" style="animation-delay: 0.4s;">Add Opportunities</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Welcome Message -->
+    @if (showWelcomeMessage)
+    {
+        <div class="container">
+            <div class="welcome-alert">
+                <button class="close-btn" @onclick="HideWelcomeMessage">×</button>
+                <div class="welcome-icon">
+                    <i class="bi bi-hand-thumbs-up"></i>
+                </div>
+                <div>
+                    <span class="welcome-user">Hello, @fullName!</span>
+                    <p class="welcome-message">Welcome to your professional dashboard. Let's create and connect today.</p>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Quick Actions Section -->
+    <section class="section actions-section">
+        <div class="container">
+            <h2 class="section-title fadeInUp">Quick Actions</h2>
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 slideInFromLeft" style="animation-delay: 0.1s;">
+                        <img src="https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=600" class="card-img-top" alt="Add Gigs" />
+                        <div class="card-body">
+                            <h5 class="card-title">Create New Gig</h5>
+                            <p class="card-text">Showcase your unique photography services to potential clients.</p>
+                            <a href="@BuildUrl("/AddGigs")" class="btn btn-primary w-100">Get Started</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 slideInFromRight" style="animation-delay: 0.2s;">
+                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600" class="card-img-top" alt="Profile" />
+                        <div class="card-body">
+                            <h5 class="card-title">Update Profile</h5>
+                            <p class="card-text">Keep your portfolio and professional details up to date.</p>
+                            <a href="@BuildUrl("/Profile")" class="btn btn-primary w-100">Edit Profile</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 slideInFromLeft" style="animation-delay: 0.3s;">
+                        <img src="https://plus.unsplash.com/premium_photo-1661895445667-6995987d296e?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8b3Bwb3J0dW5pdHl8ZW58MHx8MHx8fDA%3D" class="card-img-top" alt="Add Opportunities" />
+                        <div class="card-body">
+                            <h5 class="card-title">Create New Opportunity</h5>
+                            <p class="card-text">Post opportunities to connect with talented photographers.</p>
+                            <a href="@BuildUrl("/AddOpportunities")" class="btn btn-primary w-100">Post Opportunity</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 slideInFromRight" style="animation-delay: 0.4s;">
+                        <img src="https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8cGhvdG9ncmFwaHl8ZW58MHx8MHx8fDA%3D" class="card-img-top" alt="Discover Photographers" />
+                        <div class="card-body">
+                            <h5 class="card-title">Discover Photographers</h5>
+                            <p class="card-text">Find and connect with talented photographers in your area.</p>
+                            <a href="@BuildUrl("/BrowsePhotographers")" class="btn btn-primary w-100">Explore Now</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 slideInFromLeft" style="animation-delay: 0.5s;">
+                        <img src="https://images.unsplash.com/photo-1519331532361-861738cc31ad?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8ZGlzY292ZXJ8ZW58MHx8MHx8fDA%3D" class="card-img-top" alt="Discover Opportunities" />
+                        <div class="card-body">
+                            <h5 class="card-title">Discover Opportunities</h5>
+                            <p class="card-text">Explore photography opportunities tailored to your skills.</p>
+                            <a href="@BuildUrl("/opportunities")" class="btn btn-primary w-100">Browse Opportunities</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 slideInFromRight" style="animation-delay: 0.6s;">
+                        <img src="https://images.unsplash.com/photo-1531845116688-48819b3b68d9?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8cGhvdG9zfGVufDB8fDB8fHww" class="card-img-top" alt="Upload Photos" />
+                        <div class="card-body">
+                            <h5 class="card-title">Upload Photos</h5>
+                            <p class="card-text">Add new images to your portfolio to showcase your photography work.</p>
+                            <a href="@BuildUrl("/AddPhotos")" class="btn btn-primary w-100">Upload Photos</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <div class="container">
+        <div class="stats-row">
+            <div class="stat-card" style="animation-delay: 0.1s;">
+                <div class="stat-icon primary">
+                    <i class="bi bi-camera"></i>
+                </div>
+                <div class="stat-value">@userGigs.Count</div>
+                <div class="stat-label">Active Gigs</div>
+            </div>
+            <div class="stat-card" style="animation-delay: 0.2s;">
+                <div class="stat-icon secondary">
+                    <i class="bi bi-briefcase"></i>
+                </div>
+                <div class="stat-value">@userOpportunities.Count</div>
+                <div class="stat-label">Active Opportunities</div>
+            </div>
+            <div class="stat-card" style="animation-delay: 0.3s;">
+                <div class="stat-icon secondary">
+                    <i class="bi bi-eye"></i>
+                </div>
+                <div class="stat-value">254</div>
+                <div class="stat-label">Profile Views</div>
+            </div>
+            <div class="stat-card" style="animation-delay: 0.4s;">
+                <div class="stat-icon success">
+                    <i class="bi bi-star"></i>
+                </div>
+                <div class="stat-value">4.9</div>
+                <div class="stat-label">Rating</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <section class="search-section">
+        <div class="container">
+            <div class="search-card">
+                <h3>Find Your Perfect Photos</h3>
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search by title..." @bind="searchTitle" @bind:event="oninput" />
+                    <select class="form-select" @bind="selectedOwner">
+                        <option value="">Select Owner...</option>
+                        @foreach (var owner in owners)
+                        {
+                            <option value="@owner">@owner</option>
+                        }
+                    </select>
+                    <button class="btn btn-primary search-btn" @onclick="Search">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                <div class="text-center small mt-2" style="color: var(--text-muted);">
+                    Trending: Wedding photos, Landscape photography
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Your Gigs Section -->
+    <section class="section gigs-section">
+        <div class="container">
+            <h2 class="section-title fadeInUp">Your Active Gigs</h2>
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (userId == 0 || !string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="empty-state fadeInUp">
+                    <i class="bi bi-exclamation-circle" style="font-size: 3rem; color: var(--accent);"></i>
+                    <h3>User Not Found</h3>
+                    <p>@(errorMessage ?? "Please log in to view or create gigs.")</p>
+                    <a href="/login" class="btn btn-primary">Log In</a>
+                </div>
+            }
+            else if (userGigs.Count == 0)
+            {
+                <div class="empty-state fadeInUp">
+                    <i class="bi bi-image" style="font-size: 3rem; color: var(--accent);"></i>
+                    <h3>No Gigs Available</h3>
+                    <p>You haven't created any gigs yet. Start showcasing your photography services.</p>
+                    <a href="@BuildUrl("/AddGigs")" class="btn btn-primary">Create Your First Gig</a>
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var gig in userGigs)
+                    {
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 slideInFromLeft">
+                                <img src="@gig.ImageUrl" class="card-img-top" alt="@gig.Title" />
+                                <div class="card-body">
+                                    <h5 class="card-title">@gig.Title</h5>
+                                    <p class="card-text">@gig.Description</p>
+                                    <p class="card-text"><small>Service: @gig.ServiceType</small></p>
+                                    <p class="card-text"><small>City: @gig.City</small></p>
+                                    <div class="card-price">PKR @gig.Price</div>
+                                    <div class="d-flex gap-2">
+                                        <a href="@BuildUrl($"/EditGig/{gig.Id}")" class="btn btn-primary flex-grow-1">Edit Gig</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Your Opportunities Section -->
+    <section class="section opportunities-section">
+        <div class="container">
+            <h2 class="section-title fadeInUp">Your Active Opportunities</h2>
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (userId == 0 || !string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="empty-state fadeInUp">
+                    <i class="bi bi-exclamation-circle" style="font-size: 3rem; color: var(--accent);"></i>
+                    <h3>User Not Found</h3>
+                    <p>@(errorMessage ?? "Please log in to view or create opportunities.")</p>
+                    <a href="/login" class="btn btn-primary">Log In</a>
+                </div>
+            }
+            else if (userOpportunities.Count == 0)
+            {
+                <div class="empty-state fadeInUp">
+                    <i class="bi bi-briefcase" style="font-size: 3rem; color: var(--accent);"></i>
+                    <h3>No Opportunities Available</h3>
+                    <p>You haven't created any opportunities yet. Start posting opportunities to connect with photographers.</p>
+                    <a href="@BuildUrl("/AddOpportunities")" class="btn btn-primary">Create Your First Opportunity</a>
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var opportunity in userOpportunities)
+                    {
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 slideInFromRight">
+                                <div class="card-body">
+                                    <h5 class="card-title">@opportunity.Title</h5>
+                                    <p class="card-text">@opportunity.Description</p>
+                                    <p class="card-text"><small>Event Type: @opportunity.EventType</small></p>
+                                    <p class="card-text"><small>Location: @opportunity.Location</small></p>
+                                    <p class="card-text"><small>Contact: @opportunity.ContactEmail</small></p>
+                                    <div class="card-price">PKR @opportunity.Budget</div>
+                                    <div class="d-flex gap-2">
+                                        <a href="@BuildUrl($"/EditOpportunity/{opportunity.Id}")" class="btn btn-primary flex-grow-1">Edit Opportunity</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Featured Photos Section -->
+    <section class="section featured-section">
+        <div class="container">
+            <h2 class="section-title fadeInUp">Featured Photos</h2>
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (featuredPhotos.Count == 0)
+            {
+                <div class="empty-state fadeInUp">
+                    <i class="bi bi-image" style="font-size: 3rem; color: var(--accent);"></i>
+                    <h3>No Photos Available</h3>
+                    <p>No photos have been uploaded yet. Be the first to share your work!</p>
+                    <a href="@BuildUrl("/AddPhotos")" class="btn btn-primary">Upload a Photo</a>
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var photo in featuredPhotos)
+                    {
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 slideInFromLeft">
+                                <img src="@photo.ImageUrl" class="card-img-top" alt="@photo.Title" />
+                                <div class="card-body">
+                                    <h5 class="card-title">@photo.Title</h5>
+                                    <p class="card-text">Uploaded by: @photo.UploadedBy</p>
+                                    <a href="@BuildUrl("/ViewPhotos")" class="btn btn-primary">View All Photos</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials-section">
+        <div class="container">
+            <h2 class="section-title fadeInUp">Find the Talent for Your Wedding</h2>
+            <div class="row align-items-center">
+                <div class="col-md-6 fadeInUp">
+                    <p class="lead mb-4">Connect with top photographers and creatives to bring your vision to life.</p>
+                    <a href="@BuildUrl("/BrowsePhotographers")" class="btn btn-outline-light bounceIn" style="animation-delay: 0.2s;">Get Started</a>
+                </div>
+                <div class="col-md-6 fadeInUp" style="animation-delay: 0.4s;">
+                    <div class="d-flex flex-column align-items-center">
+                        <img src="https://images.unsplash.com/photo-1519742866993-66d3cfef4bbd?w=600&auto=format&fit=crop&q=60" class="stack-img mb-3" alt="Wedding" />
+                        <div class="d-flex justify-content-center gap-3">
+                            <img src="https://images.unsplash.com/photo-1615632386447-50385a6b7fdf?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fHdlZGRpbmclMjBzaG90fGVufDB8fDB8fHww" class="stack-img" alt="Portrait" />
+                            <img src="https://plus.unsplash.com/premium_photo-1664790560123-c5f839457591?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mzd8fGV2ZW50fGVufDB8fDB8fHww" class="stack-img" alt="Event" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="section cta-section text-center">
+        <div class="container">
+            <h2 class="section-title fadeInUp">Ready to Capture Your Story?</h2>
+            <p class="lead mb-5 fadeInUp" style="animation-delay: 0.2s; color: var(--text-muted);">Join our platform and connect with world-class photographers today.</p>
+            <div class="cta-input-group fadeInUp" style="animation-delay: 0.4s;">
+                <div class="input-group shadow-sm">
+                    <input type="email" class="form-control cta-input" placeholder="Enter your email" />
+                    <button class="btn cta-button">Stay Updated</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/923001234567" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
+      <img src="https://img.freepik.com/premium-photo/whatsapp-logo_1080029-96.jpg?semt=ais_hybrid&w=740" alt="WhatsApp" style="border-radius:50%;height:35px;width:35px" />
+  
+    </a>
+</main>
+
+@code {
+    private string searchTitle = "";
+    private string selectedOwner = "";
+    private bool showWelcomeMessage = true;
+    private string fullName = "User";
+    private int userId = 0;
+    private string userEmail = "";
+    private bool isLoading = true;
+    private List<Gig> userGigs = new();
+    private List<Opportunity> userOpportunities = new();
+    private List<Photo> featuredPhotos = new();
+    private List<string> owners = new();
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        showWelcomeMessage = query["login"] == "success" || query["signup"] == "success";
+
+        try
+        {
+            if (int.TryParse(query["userId"], out int id))
+            {
+                userId = id;
+                fullName = query["fullName"] ?? "User";
+
+                var user = await UserService.GetUserByIdAsync(userId);
+                if (user != null)
+                {
+                    userEmail = user.Email ?? "";
+                    userGigs = await GigService.GetGigsByUserIdAsync(userId) ?? new List<Gig>();
+                    userOpportunities = await OpportunityService.GetOpportunitiesByUserIdAsync(userId) ?? new List<Opportunity>();
+                    var allPhotos = await PhotoService.GetAllPhotosAsync();
+                    featuredPhotos = allPhotos.Take(3).ToList();
+                    owners = allPhotos.Select(p => p.UploadedBy).Distinct().OrderBy(o => o).ToList();
+                }
+                else
+                {
+                    errorMessage = "User not found. Please log in.";
+                }
+            }
+            else
+            {
+                errorMessage = "Invalid user ID. Please log in.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load profile, gigs, opportunities, or photos: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        bool shouldRefresh = query["refresh"] == "true";
+        if (shouldRefresh && userId != 0)
+        {
+            isLoading = true;
+            try
+            {
+                userGigs = await GigService.GetGigsByUserIdAsync(userId) ?? new List<Gig>();
+                userOpportunities = await OpportunityService.GetOpportunitiesByUserIdAsync(userId) ?? new List<Opportunity>();
+                var allPhotos = await PhotoService.GetAllPhotosAsync();
+                featuredPhotos = allPhotos.Take(3).ToList();
+                owners = allPhotos.Select(p => p.UploadedBy).Distinct().OrderBy(o => o).ToList();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Failed to refresh gigs, opportunities, or photos: {ex.Message}";
+            }
+            finally
+            {
+                isLoading = false;
+            }
+        }
+    }
+
+    private void HideWelcomeMessage()
+    {
+        showWelcomeMessage = false;
+    }
+
+    private void Search()
+    {
+        var queryParams = new List<string>();
+        if (!string.IsNullOrWhiteSpace(searchTitle))
+            queryParams.Add($"searchTitle={Uri.EscapeDataString(searchTitle)}");
+        if (!string.IsNullOrEmpty(selectedOwner))
+            queryParams.Add($"selectedOwner={Uri.EscapeDataString(selectedOwner)}");
+        if (userId > 0)
+            queryParams.Add($"userId={userId}");
+        if (!string.IsNullOrEmpty(userEmail))
+            queryParams.Add($"email={Uri.EscapeDataString(userEmail)}");
+        if (!string.IsNullOrEmpty(fullName) && fullName != "User")
+            queryParams.Add($"fullName={Uri.EscapeDataString(fullName)}");
+
+        var queryString = string.Join("&", queryParams);
+        var url = string.IsNullOrEmpty(queryString) ? "/ViewPhotos" : $"/ViewPhotos?{queryString}";
+        NavigationManager.NavigateTo(url);
+    }
+
+    private string BuildUrl(string basePath)
+    {
+        var queryParams = new List<string>();
+        if (userId > 0)
+            queryParams.Add($"userId={userId}");
+        if (!string.IsNullOrEmpty(userEmail))
+            queryParams.Add($"email={Uri.EscapeDataString(userEmail)}");
+        if (!string.IsNullOrEmpty(fullName) && fullName != "User")
+            queryParams.Add($"fullName={Uri.EscapeDataString(fullName)}");
+
+        var queryString = string.Join("&", queryParams);
+        return string.IsNullOrEmpty(queryString) ? basePath : $"{basePath}?{queryString}";
+    }
+}

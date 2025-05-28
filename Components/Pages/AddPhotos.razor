@@ -1,0 +1,203 @@
+@page "/AddPhotos"
+@using Qalakar.Data
+@using Microsoft.AspNetCore.Components.Forms
+@inject NavigationManager NavigationManager
+@inject PhotoService PhotoService
+@inject IWebHostEnvironment WebHostEnvironment
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<!-- Reuse styles from Dashboard.razor -->
+<link href="/css/dashboard.css" rel="stylesheet" />
+
+<main>
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title fadeInUp">Upload a New Photo</h2>
+            @if (userId == 0)
+            {
+                <div class="empty-state fadeInUp">
+                    <i class="bi bi-exclamation-circle" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
+                    <h3>Access Denied</h3>
+                    <p>Please log in to upload photos.</p>
+                    <a href="/login" class="btn btn-primary">Log In</a>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger fadeInUp" role="alert">
+                    @errorMessage
+                </div>
+            }
+            else
+            {
+                <div class="card search-card fadeInUp">
+                    <div class="card-body">
+                        <EditForm Model="photoModel" OnValidSubmit="HandleSubmit" FormName="AddPhotoForm">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Photo Title</label>
+                                <InputText id="title" class="form-control" @bind-Value="photoModel.Title" placeholder="Enter photo title" />
+                                <ValidationMessage For="() => photoModel.Title" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <InputTextArea id="description" class="form-control" @bind-Value="photoModel.Description" placeholder="Describe your photo" rows="4" />
+                                <ValidationMessage For="() => photoModel.Description" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="photo" class="form-label">Select Photo</label>
+                                <InputFile id="photo" class="form-control" OnChange="HandleFileSelection" accept="image/*" />
+                                <ValidationMessage For="() => photoModel.ImageUrl" />
+                                @if (!string.IsNullOrEmpty(previewUrl))
+                                {
+                                    <div class="mt-3">
+                                        <img src="@previewUrl" alt="Photo Preview" style="max-width: 100%; max-height: 200px; border-radius: 10px;" />
+                                    </div>
+                                }
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-grow-1" disabled="@isUploading">
+                                    @if (isUploading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        <span> Uploading...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Upload Photo</span>
+                                    }
+                                </button>
+                                <a href="@($"/dashboard?userId={userId}&fullName={Uri.EscapeDataString(fullName)}&email={Uri.EscapeDataString(userEmail)}")" class="btn btn-outline-light">Cancel</a>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+</main>
+
+@code {
+    private Photo photoModel = new();
+    private string? errorMessage;
+    private int userId;
+    private string fullName = "User";
+    private string userEmail = "";
+    private string? previewUrl;
+    private bool isUploading;
+    private IBrowserFile? selectedFile;
+
+    protected override void OnInitialized()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        if (int.TryParse(query["userId"], out int id))
+        {
+            userId = id;
+            fullName = query["fullName"] ?? "User";
+            userEmail = query["email"] ?? "";
+        }
+        else
+        {
+            errorMessage = "Invalid user ID. Please log in.";
+        }
+    }
+
+    private async Task HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        if (selectedFile != null)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("console.log", $"File selected: {selectedFile.Name}, Size: {selectedFile.Size}, Type: {selectedFile.ContentType}");
+                // Generate preview URL
+                var buffer = new byte[selectedFile.Size];
+                await selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).ReadAsync(buffer); // Max 10MB
+                previewUrl = $"data:{selectedFile.ContentType};base64,{Convert.ToBase64String(buffer)}";
+                photoModel.ImageUrl = selectedFile.Name; // Temporary placeholder
+                await JSRuntime.InvokeVoidAsync("console.log", "Preview URL generated successfully");
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error processing file: {ex.Message}";
+                await JSRuntime.InvokeVoidAsync("console.log", $"Error in HandleFileSelection: {ex.Message}");
+            }
+        }
+        else
+        {
+            errorMessage = "No file selected.";
+            await JSRuntime.InvokeVoidAsync("console.log", "No file selected in HandleFileSelection");
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        await JSRuntime.InvokeVoidAsync("console.log", "HandleSubmit called");
+        if (selectedFile == null)
+        {
+            errorMessage = "Please select a photo to upload.";
+            await JSRuntime.InvokeVoidAsync("console.log", "No file selected in HandleSubmit");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(photoModel.Title))
+        {
+            errorMessage = "Photo title is required.";
+            await JSRuntime.InvokeVoidAsync("console.log", "Photo title is empty");
+            return;
+        }
+
+        try
+        {
+            isUploading = true;
+            await JSRuntime.InvokeVoidAsync("console.log", "Starting file upload process");
+
+            // Validate file type
+            if (!selectedFile.ContentType.StartsWith("image/"))
+            {
+                errorMessage = "Please upload a valid image file.";
+                await JSRuntime.InvokeVoidAsync("console.log", "Invalid file type");
+                return;
+            }
+
+            // Save the file to wwwroot/Uploads
+            var uploadsPath = Path.Combine(WebHostEnvironment.WebRootPath, "Uploads");
+            await JSRuntime.InvokeVoidAsync("console.log", $"Uploads path: {uploadsPath}");
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+                await JSRuntime.InvokeVoidAsync("console.log", "Uploads directory created");
+            }
+
+            var fileName = $"{Guid.NewGuid()}_{selectedFile.Name}";
+            var filePath = Path.Combine(uploadsPath, fileName);
+            await JSRuntime.InvokeVoidAsync("console.log", $"Saving file to: {filePath}");
+            await using var fileStream = new FileStream(filePath, FileMode.Create);
+            await selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(fileStream);
+            await JSRuntime.InvokeVoidAsync("console.log", "File saved successfully");
+
+            // Save to database
+            photoModel.UserId = userId;
+            photoModel.ImageUrl = $"/Uploads/{fileName}";
+            photoModel.UploadedAt = DateTime.UtcNow;
+            await JSRuntime.InvokeVoidAsync("console.log", $"Saving photo to database: Title={photoModel.Title}, ImageUrl={photoModel.ImageUrl}");
+            await PhotoService.AddPhotoAsync(photoModel);
+            await JSRuntime.InvokeVoidAsync("console.log", "Photo saved to database");
+
+            // Redirect back to dashboard with refresh
+            await JSRuntime.InvokeVoidAsync("console.log", "Redirecting to dashboard");
+            NavigationManager.NavigateTo($"/dashboard?userId={userId}&fullName={Uri.EscapeDataString(fullName)}&email={Uri.EscapeDataString(userEmail)}&refresh=true");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error uploading photo: {ex.Message}";
+            await JSRuntime.InvokeVoidAsync("console.log", $"Error in HandleSubmit: {ex.Message}\nStackTrace: {ex.StackTrace}");
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+}

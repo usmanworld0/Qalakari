@@ -1,0 +1,414 @@
+@page "/BrowsePhotographers"
+@using Qalakar.Data
+@inject GigService GigService
+@inject NavigationManager NavigationManager
+@inject UserService UserService
+@rendermode InteractiveServer
+
+<Navbar2 />
+
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@BuildUrl("/Dashboard")">Home</a></li>
+            <li class="breadcrumb-item"><a href="@BuildUrl("/services")">Services</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Browse Photographers</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <h1 class="mb-2">Top Photographers</h1>
+    <p class="text-muted mb-4">Capture your special moments with the best photographers.</p>
+
+    <div class="row">
+        <!-- Filter Panel -->
+        <div class="col-md-3">
+            <div class="filter-section p-3 shadow-sm">
+                <h6 class="text-uppercase text-muted">Filter</h6>
+                <div class="mb-3">
+                    <label for="subArea" class="form-label">City</label>
+                    <select @bind="SelectedSubArea" @bind:after="ApplyFilters" class="form-select" id="subArea">
+                        <option value="">All Cities</option>
+                        <option value="Islamabad">Islamabad</option>
+                        <option value="Lahore">Lahore</option>
+                        <option value="Karachi">Karachi</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Budget (per event)</label>
+                    <div><input type="checkbox" @bind="BudgetFilter1" @bind:after="ApplyFilters"> 0 – 20,000</div>
+                    <div><input type="checkbox" @bind="BudgetFilter2" @bind:after="ApplyFilters"> 20,001 – 40,000</div>
+                    <div><input type="checkbox" @bind="BudgetFilter3" @bind:after="ApplyFilters"> 40,001 – 60,000</div>
+                    <div><input type="checkbox" @bind="BudgetFilter4" @bind:after="ApplyFilters"> 60,001 – 80,000</div>
+                    <div><input type="checkbox" @bind="BudgetFilter5" @bind:after="ApplyFilters"> 80,001+</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Availability</label>
+                    <div><input type="checkbox" @bind="AvailableThisMonth" @bind:after="ApplyFilters"> Available This Month</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Style</label>
+                    <div><input type="checkbox" @bind="StyleCandid" @bind:after="ApplyFilters"> Candid</div>
+                    <div><input type="checkbox" @bind="StyleTraditional" @bind:after="ApplyFilters"> Traditional</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="col-md-9">
+            <!-- Results Header -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-muted mb-0">@FilteredGigs.Count of @(AllGigs.Count > 0 ? AllGigs.Count : FilteredGigs.Count) Results</p>
+                <div>
+                    <span class="me-2">View: <i class="fas fa-list"></i> <i class="fas fa-th"></i></span>
+                    <select @bind="SortOption" class="form-select d-inline w-auto">
+                        <option value="relevance">Sort by: Relevance</option>
+                        <option value="price_asc">Price: Low to High</option>
+                        <option value="price_desc">Price: High to Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Ad Banner -->
+            <div class="bg-danger text-white p-3 rounded mb-3 text-center">
+                <h5 class="mb-1">BAAT PAAKI x SHADIYANA</h5>
+                <p class="mb-0">Your Rishta starts with MuzMatch, the planning ends with Shadiyana</p>
+                <small>shadiyana.pk/muz.com</small>
+            </div>
+
+            <!-- Gigs List -->
+            @if (IsLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (PaginatedGigs.Count == 0)
+            {
+                <div class="text-center text-muted">No photographers found matching your criteria.</div>
+            }
+            else
+            {
+                @foreach (var gig in PaginatedGigs)
+                {
+                    <div class="card mb-3 shadow-sm">
+                        <div class="row g-0">
+                            <div class="col-md-4">
+                                <img src="@gig.ImageUrl" class="card-img-top img-fluid" alt="@gig.Title">
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title">@gig.Title</h5>
+                                    <p class="card-text">by @gig.UserName</p>
+                                    <p class="card-text"><i class="fas fa-star text-warning"></i> 4.5 (120) <i class="fas fa-heart text-muted ms-2"></i></p>
+                                    <p class="card-text text-muted"><i class="fas fa-map-marker-alt"></i> @gig.City</p>
+                                    <p class="card-text">Specializing in @gig.ServiceType photography.</p>
+                                    <p class="card-text text-danger fw-bold">Starting at PKR @gig.Price</p>
+                                    <a href="@BuildUrl($"/PhotographerDetails/{gig.Id}")" class="btn btn-outline-secondary">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Pagination -->
+                <div class="mt-6 flex justify-center">
+                    <button @onclick="PreviousPage" class="btn btn-outline-secondary mx-1 px-4 py-2" disabled="@(CurrentPage == 1)">Previous</button>
+                    @for (int i = 1; i <= TotalPages; i++)
+                    {
+                        <button @onclick="() => GoToPage(i)" class="btn btn-outline-secondary mx-1 px-4 py-2 @(CurrentPage == i ? "bg-accent text-bg-light" : "")" @key="i">@i</button>
+                    }
+                    <button @onclick="NextPage" class="btn btn-outline-secondary mx-1 px-4 py-2" disabled="@(CurrentPage == TotalPages)">Next</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --accent: #AF8B65;
+        --bg-light: #F7ECE1;
+        --text-dark: #3F2A0E;
+        --text-muted: #9D7967;
+        --card-bg: rgba(247, 236, 225, 0.8);
+        --glass-bg: rgba(243, 227, 208, 0.2);
+        --glass-border: rgba(175, 139, 101, 0.3);
+        --highlight: #4F2A1C;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-light);
+        color: var(--text-dark);
+    }
+
+    .container {
+        padding: 2rem;
+    }
+
+    .breadcrumb {
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 0.5rem 1rem;
+    }
+
+    .breadcrumb-item a {
+        color: var(--text-dark);
+    }
+
+    .breadcrumb-item a:hover {
+        color: var(--accent);
+    }
+
+    h1 {
+        color: var(--text-dark);
+        font-weight: 700;
+    }
+
+    .text-muted {
+        color: var(--text-muted) !important;
+    }
+
+    .filter-section {
+        background: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+    }
+
+    .form-select, .form-control {
+        background: var(--bg-light);
+        border: 1px solid var(--glass-border);
+        color: var(--text-dark);
+        border-radius: 5px;
+    }
+
+    .form-select:focus, .form-control:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 0.2rem rgba(175, 139, 101, 0.25);
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: none;
+        border-radius: 10px;
+        transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-img-top {
+        border-radius: 10px 0 0 10px;
+    }
+
+    .card-title {
+        color: var(--text-dark);
+        font-weight: 600;
+    }
+
+    .card-text {
+        color: var(--text-muted);
+    }
+
+    .text-danger {
+        color: var(--highlight) !important;
+    }
+
+    .bg-danger {
+        background-color: var(--highlight) !important;
+    }
+
+    .btn-outline-secondary {
+        color: var(--text-dark);
+        border-color: var(--text-dark);
+        border-radius: 20px;
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--text-dark);
+        color: var(--bg-light);
+    }
+
+    .spinner-border {
+        width: 2rem;
+        height: 2rem;
+        border: 0.25rem solid var(--accent);
+        border-top: 0.25rem solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    private List<Gig> AllGigs = new();
+    private List<Gig> FilteredGigs = new();
+    private bool IsLoading = true;
+    private int CurrentPage = 1;
+    private int PageSize = 6;
+    private int TotalPages => (int)Math.Ceiling(FilteredGigs.Count / (double)PageSize);
+
+    private string _searchQuery = "";
+    private string SearchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            _searchQuery = value;
+        }
+    }
+
+    private string _sortOption = "relevance";
+    private string SortOption
+    {
+        get => _sortOption;
+        set
+        {
+            _sortOption = value;
+            ApplyFilters();
+        }
+    }
+
+    private string _selectedSubArea = "";
+    private string SelectedSubArea
+    {
+        get => _selectedSubArea;
+        set
+        {
+            _selectedSubArea = value;
+            ApplyFilters();
+        }
+    }
+
+    private bool BudgetFilter1 = false;
+    private bool BudgetFilter2 = false;
+    private bool BudgetFilter3 = false;
+    private bool BudgetFilter4 = false;
+    private bool BudgetFilter5 = false;
+    private bool AvailableThisMonth = false;
+    private bool StyleCandid = false;
+    private bool StyleTraditional = false;
+
+    private int userId = 0;
+    private string userEmail = "";
+    private string fullName = "User";
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+        if (int.TryParse(query["userId"], out int id))
+        {
+            userId = id;
+        }
+        userEmail = query["email"] ?? "";
+        fullName = query["fullName"] ?? "User";
+
+        try
+        {
+            AllGigs = await GigService.GetAllGigsAsync();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading gigs: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private string BuildUrl(string basePath)
+    {
+        var queryParams = new List<string>();
+        if (userId > 0)
+            queryParams.Add($"userId={userId}");
+        if (!string.IsNullOrEmpty(userEmail))
+            queryParams.Add($"email={Uri.EscapeDataString(userEmail)}");
+        if (!string.IsNullOrEmpty(fullName))
+            queryParams.Add($"fullName={Uri.EscapeDataString(fullName)}");
+
+        var queryString = string.Join("&", queryParams);
+        return string.IsNullOrEmpty(queryString) ? basePath : $"{basePath}?{queryString}";
+    }
+
+    private void ApplyFilters()
+    {
+        var filtered = AllGigs;
+
+        if (!string.IsNullOrEmpty(SelectedSubArea))
+        {
+            filtered = filtered.Where(g => g.City.Contains(SelectedSubArea, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        filtered = filtered.Where(g =>
+            (!BudgetFilter1 || (g.Price >= 0 && g.Price <= 20000)) &&
+            (!BudgetFilter2 || (g.Price > 20000 && g.Price <= 40000)) &&
+            (!BudgetFilter3 || (g.Price > 40000 && g.Price <= 60000)) &&
+            (!BudgetFilter4 || (g.Price > 60000 && g.Price <= 80000)) &&
+            (!BudgetFilter5 || (g.Price > 80000))
+        ).ToList();
+
+        if (AvailableThisMonth)
+        {
+            var thisMonth = DateTime.Today.ToString("yyyy-MM");
+            filtered = filtered.Where(g => !string.IsNullOrEmpty(g.Availability) && g.Availability.Split(',').Any(d => d.StartsWith(thisMonth))).ToList();
+        }
+
+        if (StyleCandid || StyleTraditional)
+        {
+            filtered = filtered.Where(g =>
+                (StyleCandid && g.ServiceType.Contains("Candid", StringComparison.OrdinalIgnoreCase)) ||
+                (StyleTraditional && g.ServiceType.Contains("Traditional", StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+        }
+
+        filtered = SortOption switch
+        {
+            "price_asc" => filtered.OrderBy(g => g.Price).ToList(),
+            "price_desc" => filtered.OrderByDescending(g => g.Price).ToList(),
+            "relevance" => filtered.OrderBy(g => g.Id).ToList(),
+            _ => filtered.OrderBy(g => g.Id).ToList()
+        };
+
+        FilteredGigs = filtered;
+        CurrentPage = 1;
+    }
+
+    private List<Gig> PaginatedGigs => FilteredGigs
+        .Skip((CurrentPage - 1) * PageSize)
+        .Take(PageSize)
+        .ToList();
+
+    private void PreviousPage()
+    {
+        if (CurrentPage > 1) CurrentPage--;
+    }
+
+    private void NextPage()
+    {
+        if (CurrentPage < TotalPages) CurrentPage++;
+    }
+
+    private void GoToPage(int page)
+    {
+        CurrentPage = page;
+    }
+
+    private void NavigateToDashboard()
+    {
+        NavigationManager.NavigateTo(BuildUrl("/dashboard"));
+    }
+}

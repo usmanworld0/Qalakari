@@ -1,0 +1,315 @@
+@page "/AddGigs"
+@using Qalakar.Data
+@inject NavigationManager NavigationManager
+@inject GigService GigService
+@rendermode InteractiveServer
+
+<main>
+    <div class="container">
+        <h1 class="section-title fadeInUp">Add a New Gig</h1>
+        @if (isLoading)
+        {
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else if (errorMessage != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @errorMessage
+                <a href="/login" class="alert-link">Log in</a>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="@gig" OnValidSubmit="@HandleValidSubmit" OnInvalidSubmit="@(() => errorMessage = "Please correct the form errors.")" class="card p-4 fadeInUp">
+                <DataAnnotationsValidator />
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title</label>
+                    <InputText id="title" class="form-control" @bind-Value="gig.Title" />
+                    <ValidationMessage For="@(() => gig.Title)" />
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <InputTextArea id="description" class="form-control" @bind-Value="gig.Description" />
+                    <ValidationMessage For="@(() => gig.Description)" />
+                </div>
+                <div class="mb-3">
+                    <label for="price" class="form-label">Price</label>
+                    <InputNumber id="price" class="form-control" @bind-Value="gig.Price" />
+                    <ValidationMessage For="@(() => gig.Price)" />
+                </div>
+                <div class="mb-3">
+                    <label for="serviceType" class="form-label">Service Type</label>
+                    <InputText id="serviceType" class="form-control" @bind-Value="gig.ServiceType" />
+                    <ValidationMessage For="@(() => gig.ServiceType)" />
+                </div>
+                <div class="mb-3">
+                    <label for="city" class="form-label">City</label>
+                    <InputText id="city" class="form-control" @bind-Value="gig.City" />
+                    <ValidationMessage For="@(() => gig.City)" />
+                </div>
+                <div class="mb-3">
+                    <label for="imageUrl" class="form-label">Image URL</label>
+                    <InputText id="imageUrl" class="form-control" @bind-Value="gig.ImageUrl" />
+                    <ValidationMessage For="@(() => gig.ImageUrl)" />
+                </div>
+                <div class="mb-3">
+                    <label for="phoneNumber" class="form-label">Phone Number</label>
+                    <InputText id="phoneNumber" class="form-control" @bind-Value="@gig.PhoneNumber" />
+                    <ValidationMessage For="@(() => gig.PhoneNumber)" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Availability</label>
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <button class="btn btn-outline-light" @onclick="PreviousMonth">Previous</button>
+                            <span>@currentMonth.ToString("MMMM yyyy")</span>
+                            <button class="btn btn-outline-light" @onclick="NextMonth">Next</button>
+                        </div>
+                        <div class="calendar-grid">
+                            @foreach (var day in GetCalendarDays())
+                            {
+                                <div class="calendar-day @(selectedDates.Contains(day) ? "selected" : "")"
+                                     @onclick="() => ToggleDate(day)"
+                                     style="@(day.Month != currentMonth.Month ? "opacity: 0.5;" : "")">
+                                    @day.Day
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(submitMessage))
+                {
+                    <div class="alert alert-success" role="alert">
+                        @submitMessage
+                    </div>
+                }
+                <button type="submit" class="btn btn-primary">Add Gig</button>
+                <a href="@($"/Dashboard?userId={userId}&fullName={Uri.EscapeDataString(fullName)}&refresh=true")" class="btn btn-outline-light">Back to Dashboard</a>
+            </EditForm>
+        }
+    </div>
+</main>
+
+<style>
+    :root {
+        --navbar-bg: #4A2727;
+        --accent: #AF8B65;
+        --bg-light: #F7ECE1;
+        --text-dark: #3F2A0E;
+        --text-muted: #9D7967;
+        --dark-vanilla: #D3C2AF;
+        --card-bg: rgba(247, 236, 225, 0.8);
+        --glass-bg: rgba(243, 227, 208, 0.2);
+        --glass-border: rgba(175, 139, 101, 0.3);
+        --transition: all 0.3s ease;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+
+    .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 2rem;
+        color: var(--text-dark);
+        position: relative;
+        padding-bottom: 0.5rem;
+    }
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 4px;
+        background: var(--accent);
+        border-radius: 2px;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        transition: var(--transition);
+    }
+
+    .form-control, .form-select {
+        height: 3.5rem;
+        border-radius: 10px;
+        border: 1px solid var(--glass-border);
+        padding: 0 1rem;
+        font-size: 1rem;
+        color: var(--text-dark);
+        background: rgba(247, 236, 225, 0.9);
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        border: none;
+        color: var(--text-dark);
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+    }
+
+    .btn-outline-light {
+        border-color: var(--text-dark);
+        color: var(--text-dark);
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+    }
+
+    .calendar-container {
+        background: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 1rem;
+    }
+
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+    }
+
+    .calendar-day {
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: var(--transition);
+    }
+
+    .calendar-day:hover {
+        background: var(--glass-bg);
+    }
+
+    .calendar-day.selected {
+        background: var(--accent);
+        color: var(--text-dark);
+    }
+
+    .fadeInUp {
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    @@keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+@code {
+    private Gig gig = new();
+    private string fullName = "User";
+    private int userId = 0;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? submitMessage;
+    private DateTime currentMonth = DateTime.Today;
+    private List<DateTime> selectedDates = new();
+
+    protected override void OnInitialized()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+        if (int.TryParse(query["userId"], out int id))
+        {
+            userId = id;
+            fullName = query["fullName"] ?? "User";
+            gig.UserName = fullName;
+            gig.UserId = userId;
+        }
+        else
+        {
+            errorMessage = "Invalid user ID. Please log in.";
+        }
+
+        isLoading = false;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            if (userId == 0)
+            {
+                errorMessage = "Invalid user. Please log in.";
+                StateHasChanged();
+                return;
+            }
+            gig.UserId = userId;
+            gig.UserName = fullName;
+            gig.Availability = string.Join(",", selectedDates.Select(d => d.ToString("yyyy-MM-dd")));
+
+            var result = await GigService.AddGigAsync(gig);
+            if (result.Success)
+            {
+                submitMessage = "Gig added successfully!";
+                errorMessage = null;
+                gig = new Gig { UserId = userId, UserName = fullName };
+                selectedDates = new();
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage ?? "Failed to add gig. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error adding gig: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    private List<DateTime> GetCalendarDays()
+    {
+        var days = new List<DateTime>();
+        var firstDayOfMonth = new DateTime(currentMonth.Year, currentMonth.Month, 1);
+        var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+        var startDay = firstDayOfMonth.AddDays(-(int)firstDayOfMonth.DayOfWeek);
+
+        for (var day = startDay; day <= lastDayOfMonth.AddDays(6 - (int)lastDayOfMonth.DayOfWeek); day = day.AddDays(1))
+        {
+            days.Add(day);
+        }
+        return days;
+    }
+
+    private void ToggleDate(DateTime date)
+    {
+        if (date.Month == currentMonth.Month)
+        {
+            if (selectedDates.Contains(date))
+                selectedDates.Remove(date);
+            else
+                selectedDates.Add(date);
+        }
+    }
+
+    private void PreviousMonth()
+    {
+        currentMonth = currentMonth.AddMonths(-1);
+    }
+
+    private void NextMonth()
+    {
+        currentMonth = currentMonth.AddMonths(1);
+    }
+}

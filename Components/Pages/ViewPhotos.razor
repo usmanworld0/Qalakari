@@ -1,0 +1,334 @@
+@page "/ViewPhotos"
+@using Qalakar.Data
+@inject NavigationManager NavigationManager
+@inject PhotoService PhotoService
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<!-- Reuse styles from Dashboard.razor and keep custom styles (removing banner-related styles) -->
+<link href="/css/dashboard.css" rel="stylesheet" />
+<style>
+    .photo-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .photo-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+    }
+    .pagination button {
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--accent);
+        background: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .pagination button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .filter-section {
+        background: var(--card-bg);
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+    .cta-section {
+        text-align: center;
+        padding: 2rem;
+        background: var(--glass-bg);
+        border-radius: 10px;
+        margin-top: 2rem;
+    }
+</style>
+
+<main>
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">View Photos</li>
+        </ol>
+    </nav>
+
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title fadeInUp">Explore Photos</h2>
+            <p class="lead mb-4 fadeInUp">Browse through a collection of breathtaking photos uploaded by photographers worldwide. Use the filters below to find exactly what you're looking for.</p>
+
+            <!-- Filter Section -->
+            <div class="filter-section fadeInUp">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="searchTitle" class="form-label">Search by Title</label>
+                        <input type="text" id="searchTitle" class="form-control" placeholder="Enter photo title..." @bind="searchTitle" @bind:event="oninput" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterOwner" class="form-label">Filter by Owner</label>
+                        <select id="filterOwner" class="form-select" @bind="selectedOwner">
+                            <option value="">All Owners</option>
+                            @foreach (var owner in owners)
+                            {
+                                <option value="@owner">@owner</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="sortBy" class="form-label">Sort By</label>
+                        <select id="sortBy" class="form-select" @bind="sortBy">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="titleAsc">Title (A-Z)</option>
+                            <option value="titleDesc">Title (Z-A)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Photos Display -->
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="empty-state fadeInUp">
+                    <i class="bi bi-exclamation-circle" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
+                    <h3>Error</h3>
+                    <p>@errorMessage</p>
+                    <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>
+                </div>
+            }
+            else if (filteredPhotos.Count == 0)
+            {
+                <div class="empty-state fadeInUp">
+                    <i class="bi bi-image" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
+                    <h3>No Photos Available</h3>
+                    <p>No photos match your criteria. Try adjusting your filters or be the first to share your work!</p>
+                    @if (userId != 0)
+                    {
+                        <a href="@($"/AddPhotos?userId={userId}&fullName={Uri.EscapeDataString(fullName)}&email={Uri.EscapeDataString(userEmail)}")" class="btn btn-primary">Upload a Photo</a>
+                    }
+                    else
+                    {
+                        <a href="/login" class="btn btn-primary">Log In to Upload</a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var photo in paginatedPhotos)
+                    {
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 fadeInUp photo-card">
+                                <img src="@photo.ImageUrl" class="card-img-top" alt="@photo.Title" style="height: 200px; object-fit: cover;" />
+                                <div class="card-body">
+                                    <h5 class="card-title">@photo.Title</h5>
+                                    <p class="card-text">@(photo.Description.Length > 100 ? photo.Description.Substring(0, 100) + "..." : photo.Description)</p>
+                                    <p class="card-text"><small>Uploaded by: @photo.UploadedBy</small></p>
+                                    <p class="card-text"><small>Uploaded on: @photo.UploadedAt.ToString("MMM dd, yyyy")</small></p>
+                                    <div class="d-flex gap-2">
+                                        <a href="@photo.ImageUrl" class="btn btn-secondary" download="@photo.Title"><i class="bi bi-download"></i></a>
+                                        <button class="btn btn-outline-secondary" @onclick="() => SharePhoto(photo.ImageUrl)"><i class="bi bi-share"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <button @onclick="() => ChangePage(currentPage - 1)" disabled="@(currentPage == 1)">Previous</button>
+                    <span>Page @currentPage of @totalPages</span>
+                    <button @onclick="() => ChangePage(currentPage + 1)" disabled="@(currentPage == totalPages)">Next</button>
+                </div>
+            }
+
+            <!-- Back to Homepage Button -->
+            <div class="text-center mt-4">
+                <a href="/" class="btn btn-outline-primary">Back to Homepage</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section fadeInUp">
+        <h3>Join the Community</h3>
+        <p>Have a photo to share? Contribute to our gallery and let your work inspire others!</p>
+        @if (userId != 0)
+        {
+            <a href="@($"/AddPhotos?userId={userId}&fullName={Uri.EscapeDataString(fullName)}&email={Uri.EscapeDataString(userEmail)}")" class="btn btn-primary">Upload Your Photo Now</a>
+        }
+        else
+        {
+            <a href="/login" class="btn btn-primary">Log In to Upload</a>
+        }
+    </section>
+</main>
+
+@code {
+    private List<Photo> photos = new();
+    private List<Photo> filteredPhotos = new();
+    private List<Photo> paginatedPhotos = new();
+    private bool isLoading = true;
+    private string? errorMessage;
+    private int userId;
+    private string fullName = "User";
+    private string userEmail = "";
+    private string searchTitle = "";
+    private string selectedOwner = "";
+    private string sortBy = "newest";
+    private List<string> owners = new();
+    private int currentPage = 1;
+    private int pageSize = 9;
+    private int totalPages => (int)Math.Ceiling((double)filteredPhotos.Count / pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        if (int.TryParse(query["userId"], out int id))
+        {
+            userId = id;
+            fullName = query["fullName"] ?? "User";
+            userEmail = query["email"] ?? "";
+        }
+
+        try
+        {
+            photos = await PhotoService.GetAllPhotosAsync();
+            owners = photos.Select(p => p.UploadedBy).Distinct().OrderBy(o => o).ToList();
+            ApplyFiltersAndSort();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading photos: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ApplyFiltersAndSort()
+    {
+        // Filter by title
+        var filtered = photos.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(searchTitle))
+        {
+            filtered = filtered.Where(p => p.Title.Contains(searchTitle, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Filter by owner
+        if (!string.IsNullOrEmpty(selectedOwner))
+        {
+            filtered = filtered.Where(p => p.UploadedBy == selectedOwner);
+        }
+
+        // Sort
+        filtered = sortBy switch
+        {
+            "newest" => filtered.OrderByDescending(p => p.UploadedAt),
+            "oldest" => filtered.OrderBy(p => p.UploadedAt),
+            "titleAsc" => filtered.OrderBy(p => p.Title),
+            "titleDesc" => filtered.OrderByDescending(p => p.Title),
+            _ => filtered.OrderByDescending(p => p.UploadedAt)
+        };
+
+        filteredPhotos = filtered.ToList();
+        UpdatePagination();
+    }
+
+    private void UpdatePagination()
+    {
+        currentPage = Math.Min(currentPage, Math.Max(1, totalPages));
+        var startIndex = (currentPage - 1) * pageSize;
+        paginatedPhotos = filteredPhotos.Skip(startIndex).Take(pageSize).ToList();
+        StateHasChanged();
+    }
+
+    private void ChangePage(int newPage)
+    {
+        currentPage = Math.Clamp(newPage, 1, totalPages);
+        UpdatePagination();
+    }
+
+    private void ClearFilters()
+    {
+        searchTitle = "";
+        selectedOwner = "";
+        sortBy = "newest";
+        currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    private async Task SharePhoto(string imageUrl)
+    {
+        var absoluteUrl = NavigationManager.BaseUri.TrimEnd('/') + imageUrl;
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", absoluteUrl);
+        await JSRuntime.InvokeVoidAsync("alert", "Photo URL copied to clipboard!");
+    }
+
+    private void OnSearchTitleChanged()
+    {
+        currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    private void OnSelectedOwnerChanged()
+    {
+        currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    private void OnSortByChanged()
+    {
+        currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    // Bind events for search and filters
+    private string SearchTitle
+    {
+        get => searchTitle;
+        set
+        {
+            searchTitle = value;
+            OnSearchTitleChanged();
+        }
+    }
+
+    private string SelectedOwner
+    {
+        get => selectedOwner;
+        set
+        {
+            selectedOwner = value;
+            OnSelectedOwnerChanged();
+        }
+    }
+
+    private string SortBy
+    {
+        get => sortBy;
+        set
+        {
+            sortBy = value;
+            OnSortByChanged();
+        }
+    }
+}

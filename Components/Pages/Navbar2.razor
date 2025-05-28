@@ -1,0 +1,204 @@
+@using System.Web
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<!-- Navigation Bar -->
+<header>
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <!-- Logo -->
+            <a class="navbar-brand" href="@BuildUrl("/dashboard")">qalakari</a>
+            <!-- Toggler for Mobile -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="@isMobileMenuOpen" aria-label="Toggle navigation" @onclick="ToggleMobileMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <!-- Menu Items -->
+            <div class="collapse navbar-collapse @(isMobileMenuOpen ? "show" : "")" id="navbarNav">
+                <ul class="navbar-nav ms-auto flex-row flex-wrap align-items-center">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="@BuildUrl("/dashboard")" ActiveClass="active">Home</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="@BuildUrl("/BrowsePhotographers")" ActiveClass="active">Browse Photographers</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="@BuildUrl("/opportunities")" ActiveClass="active">Browse Opportunities</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="@BuildUrl("/contact2")" ActiveClass="active">Contact</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="@BuildUrl("/ViewPhotos2")" ActiveClass="active">Photos</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-primary ms-2" @onclick="ShowConsultationDialog">Call for Consultation</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-primary ms-2" @onclick="Logout">Logout</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<!-- Consultation Dialog -->
+@if (showConsultationDialog)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm modal-dialog-centered" style="max-width: 350px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Contact Us</h5>
+                    <button type="button" class="btn-close" @onclick="CloseConsultationDialog" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Reach out for a consultation:</p>
+                    <div class="d-flex align-items-center mb-3">
+                        <strong class="me-2">Phone:</strong>
+                        <span id="phoneNumber">03045313474</span>
+                    </div>
+                    <button class="btn btn-outline-light w-100" @onclick="CopyPhoneNumber">
+                        <i class="bi bi-clipboard me-2"></i>Copy Number
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    :root {
+        --navbar-bg: #4A2727;
+        --glass-bg: rgba(243, 227, 208, 0.2);
+        --glass-border: rgba(175, 139, 101, 0.3);
+        --bg-light: #F7ECE1;
+        --accent: #AF8B65;
+        --text-dark: #3F2A0E;
+        --text-muted: #9D7967;
+    }
+
+    .navbar {
+        background-color: var(--navbar-bg) !important;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .navbar-brand, .nav-link {
+        color: var(--bg-light) !important;
+    }
+
+    .nav-link:hover, .nav-link.active {
+        color: var(--accent) !important;
+    }
+
+    .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28247, 236, 225, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
+
+    .modal-content {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-content:hover {
+        transform: translateY(-5px);
+    }
+
+    .modal-title, .modal-body strong, .modal-body span {
+        color: var(--text-dark);
+    }
+
+    .modal-body p {
+        color: var(--text-muted);
+    }
+
+    .modal-header {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .btn-outline-light {
+        border-radius: 50px;
+        border-color: var(--text-dark);
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-light:hover {
+        background: var(--accent);
+        color: var(--text-dark);
+        border-color: var(--accent);
+        box-shadow: 0 4px 15px rgba(175, 139, 101, 0.4);
+    }
+</style>
+
+@code {
+    private bool isMobileMenuOpen = false;
+    private bool showConsultationDialog = false;
+    private string fullName = "User";
+    private int userId = 0;
+    private string userEmail = "";
+
+    protected override void OnInitialized()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        fullName = query["fullName"] ?? "User";
+        if (int.TryParse(query["userId"], out int id))
+        {
+            userId = id;
+        }
+        userEmail = query["email"] ?? "";
+    }
+
+    private string BuildUrl(string basePath)
+    {
+        var queryParams = new List<string>();
+        if (userId > 0)
+            queryParams.Add($"userId={userId}");
+        if (!string.IsNullOrEmpty(userEmail))
+            queryParams.Add($"email={Uri.EscapeDataString(userEmail)}");
+        if (!string.IsNullOrEmpty(fullName) && fullName != "User")
+            queryParams.Add($"fullName={Uri.EscapeDataString(fullName)}");
+
+        var queryString = string.Join("&", queryParams);
+        return string.IsNullOrEmpty(queryString) ? basePath : $"{basePath}?{queryString}";
+    }
+
+    private void ToggleMobileMenu()
+    {
+        isMobileMenuOpen = !isMobileMenuOpen;
+    }
+
+    private void ShowConsultationDialog()
+    {
+        showConsultationDialog = true;
+    }
+
+    private void CloseConsultationDialog()
+    {
+        showConsultationDialog = false;
+    }
+
+    private void Logout()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    private async Task CopyPhoneNumber()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", "03045313474");
+            await JSRuntime.InvokeVoidAsync("alert", "Phone number copied to clipboard!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Failed to copy phone number: {ex.Message}");
+        }
+    }
+}

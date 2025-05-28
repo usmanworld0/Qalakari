@@ -1,0 +1,169 @@
+ <!-- Navigation Bar -->
+<header>
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <!-- Logo -->
+            <a class="navbar-brand" href="/">qalakari</a>
+            <!-- Toggler for Mobile -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" @onclick="ToggleMobileMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <!-- Menu Items -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto flex-row flex-wrap align-items-center">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/" ActiveClass="active">Home</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/ViewPhotos" ActiveClass="active">Photos</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/contact" ActiveClass="active">Contact</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/login" ActiveClass="active">Log-In</NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-primary ms-2" @onclick="ShowConsultationDialog">Call for Consultation</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<!-- Consultation Dialog -->
+@if (showConsultationDialog)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm modal-dialog-centered" style="max-width: 350px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Contact Us</h5>
+                    <button type="button" class="btn-close" @onclick="CloseConsultationDialog" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Reach out for a consultation:</p>
+                    <div class="d-flex align-items-center mb-3">
+                        <strong class="me-2">Phone:</strong>
+                        <span id="phoneNumber">03045313474</span>
+                    </div>
+                    <button class="btn btn-outline-light w-100" @onclick="CopyPhoneNumber">
+                        <i class="bi bi-clipboard me-2"></i>Copy Number
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    :root {
+        --navbar-bg: #4A2727; /* Irish Coffee as navbar background */
+        --glass-bg: rgba(243, 227, 208, 0.2); /* Adjusted from palette-inspired shade */
+        --glass-border: rgba(175, 139, 101, 0.3); /* Light Taupe-derived border */
+    }
+
+    .navbar {
+        background-color: var(--navbar-bg) !important;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .navbar-brand, .nav-link {
+        color: var(--bg-light) !important; /* #F7ECE1 for readability against #4A2727 */
+    }
+
+    .nav-link:hover, .nav-link.active {
+        color: var(--accent) !important; /* #AF8B65 */
+    }
+
+    .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28247, 236, 225, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
+
+    .modal-content {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-content:hover {
+        transform: translateY(-5px);
+    }
+
+    .modal-title, .modal-body strong, .modal-body span {
+        color: var(--text-dark); /* #3F2A0E */
+    }
+
+    .modal-body p {
+        color: var(--text-muted); /* #9D7967 */
+    }
+
+    .modal-header {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .btn-outline-light {
+        border-radius: 50px;
+        border-color: var(--text-dark);
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-light:hover {
+        background: var(--accent); /* #AF8B65 */
+        color: var(--text-dark);
+        border-color: var(--accent);
+        box-shadow: 0 4px 15px rgba(175, 139, 101, 0.4);
+    }
+</style>
+
+@code {
+    private bool isMobileMenuOpen = false;
+    private bool isDropdownOpen = false;
+    private bool showConsultationDialog = false;
+
+    private void ToggleMobileMenu()
+    {
+        isMobileMenuOpen = !isMobileMenuOpen;
+    }
+
+    private void OpenDropdown()
+    {
+        isDropdownOpen = true;
+    }
+
+    private void CloseDropdown()
+    {
+        isDropdownOpen = false;
+    }
+
+    private void ShowConsultationDialog()
+    {
+        showConsultationDialog = true;
+    }
+
+    private void CloseConsultationDialog()
+    {
+        showConsultationDialog = false;
+    }
+
+    private async Task CopyPhoneNumber()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", "03045313474");
+        }
+        catch
+        {
+            // Handle clipboard errors silently
+        }
+    }
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
+} 

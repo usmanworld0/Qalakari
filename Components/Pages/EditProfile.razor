@@ -1,0 +1,287 @@
+@page "/profile"
+@using Qalakar.Data
+@inject NavigationManager NavigationManager
+@inject UserService UserService
+@rendermode InteractiveServer
+
+<style>
+    :root {
+        --navbar-bg: #4A2727;
+        --accent: #AF8B65;
+        --bg-light: #F7ECE1;
+        --text-dark: #3F2A0E;
+        --text-muted: #9D7967;
+        --dark-vanilla: #D3C2AF;
+        --card-bg: rgba(247, 236, 225, 0.8);
+        --glass-bg: rgba(243, 227, 208, 0.2);
+        --glass-border: rgba(175, 139, 101, 0.3);
+        --transition: all 0.3s ease;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-light);
+        color: var(--text-dark);
+    }
+
+    .profile-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: var(--transition);
+    }
+
+    .profile-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .profile-card .form-control[readonly] {
+        background: rgba(247, 236, 225, 0.7);
+        opacity: 0.8;
+    }
+
+    .form-control {
+        height: 3.5rem;
+        border-radius: 10px;
+        border: 1px solid var(--glass-border);
+        padding: 0 1rem;
+        font-size: 1rem;
+        color: var(--text-dark);
+        background: rgba(247, 236, 225, 0.9);
+        transition: var(--transition);
+    }
+
+    .form-control:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 0.2rem rgba(175, 139, 101, 0.25);
+        outline: none;
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        border: none;
+        color: var(--text-dark);
+        border-radius: 50px;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        transition: var(--transition);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        font-size: 1rem;
+    }
+
+    .btn-primary:hover {
+        background: var(--text-muted);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(175, 139, 101, 0.4);
+    }
+
+    .btn-back {
+        background: var(--text-muted);
+        border: none;
+        color: var(--text-dark);
+        border-radius: 50px;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        transition: var(--transition);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        font-size: 1rem;
+    }
+
+    .btn-back:hover {
+        background: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(175, 139, 101, 0.4);
+    }
+
+    .alert-dismissible .close-btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    .alert-dismissible .close-btn:hover {
+        color: var(--accent);
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+</style>
+
+<main>
+    <div class="container">
+        <h2 class="section-title fadeInUp">Edit Your Profile</h2>
+        @if (IsLoading)
+        {
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else if (User == null)
+        {
+            <div class="alert alert-danger" role="alert">
+                User not found or invalid email. Please <a href="/login" class="alert-link">log in</a> to continue.
+            </div>
+        }
+        else
+        {
+            <div class="profile-card fadeInUp">
+                <EditForm Model="User" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger mb-3" />
+
+                    <div class="mb-3">
+                        <label for="firstName" class="form-label">First Name</label>
+                        <InputText id="firstName" @bind-Value="User.FirstName" class="form-control" />
+                        <ValidationMessage For="@(() => User.FirstName)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="lastName" class="form-label">Last Name</label>
+                        <InputText id="lastName" @bind-Value="User.LastName" class="form-control" />
+                        <ValidationMessage For="@(() => User.LastName)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="age" class="form-label">Age</label>
+                        <InputNumber id="age" @bind-Value="User.Age" class="form-control" />
+                        <ValidationMessage For="@(() => User.Age)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <InputText id="email" @bind-Value="User.Email" class="form-control" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <InputText id="password" @bind-Value="User.Password" class="form-control" type="password" placeholder="Enter new password (optional)" />
+                    </div>
+
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn btn-primary flex-grow-1">Update Profile</button>
+                        <a href="@($"/dashboard?userId={User.Id}&fullName={Uri.EscapeDataString(fullName)}")" class="btn btn-back flex-grow-1">Back to Dashboard</a>
+                    </div>
+                </EditForm>
+
+                @if (!string.IsNullOrEmpty(Message))
+                {
+                    <div class="alert @(IsSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show mt-3" role="alert">
+                        @Message
+                        <button type="button" class="close-btn" @onclick="ClearMessage">×</button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</main>
+
+@code {
+    private User? User { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private string Message { get; set; } = string.Empty;
+    private bool IsSuccess { get; set; }
+    private string fullName = "User";
+    private int userId = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        string? email = query["email"];
+        fullName = query["fullName"] ?? "User";
+
+        // Check for userId in query parameters as a fallback
+        if (int.TryParse(query["userId"], out int id))
+        {
+            userId = id;
+        }
+
+        try
+        {
+            if (!string.IsNullOrEmpty(email))
+            {
+                User = await UserService.GetUserByEmailAsync(email);
+            }
+            else if (userId > 0)
+            {
+                User = await UserService.GetUserByIdAsync(userId);
+            }
+
+            if (User == null)
+            {
+                Message = "User not found. Please log in.";
+                IsSuccess = false;
+            }
+            else
+            {
+                fullName = $"{User.FirstName} {User.LastName}".Trim();
+                userId = User.Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading profile: {ex.Message}";
+            IsSuccess = false;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (User == null)
+        {
+            Message = "No user data available to update.";
+            IsSuccess = false;
+            return;
+        }
+
+        try
+        {
+            bool updated = await UserService.UpdateUserAsync(User);
+            if (updated)
+            {
+                Message = "Profile updated successfully!";
+                IsSuccess = true;
+                fullName = $"{User.FirstName} {User.LastName}".Trim();
+            }
+            else
+            {
+                Message = "Failed to update profile. Please try again.";
+                IsSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error updating profile: {ex.Message}";
+            IsSuccess = false;
+            Console.WriteLine($"Error during update: {ex.Message}");
+        }
+    }
+
+    private void ClearMessage()
+    {
+        Message = string.Empty;
+    }
+}

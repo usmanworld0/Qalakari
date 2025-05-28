@@ -1,0 +1,92 @@
+@page "/contact"
+@using System.ComponentModel.DataAnnotations
+
+
+<Navbar/>
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <!-- Left Column: Illustration and Text -->
+            <div class="col-md-6 text-center text-md-start mb-4 mb-md-0">
+                <h2 class="mb-3">Contact Us</h2>
+                <p class="lead text-muted mb-4">Hey! Leave a message and we'll get back to you ASAP.</p>
+                <!-- Placeholder for Illustration -->
+                <div class="d-flex justify-content-center justify-content-md-start">
+                    <img src="https://via.placeholder.com/300x400?text=Contact+Illustration" alt="Contact Illustration" style="max-width: 100%; height: auto;" />
+                </div>
+            </div>
+
+            <!-- Right Column: Contact Form -->
+            <div class="col-md-6">
+                <div class="card p-4 shadow-sm">
+                    <EditForm Model="@contactModel" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name *</label>
+                            <InputText id="name" class="form-control" @bind-Value="contactModel.Name" placeholder="Your Name" />
+                            <ValidationMessage For="@(() => contactModel.Name)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="contactNumber" class="form-label">Contact Number *</label>
+                            <div class="input-group">
+                                <select class="form-select" style="max-width: 120px;" @bind="contactModel.CountryCode">
+                                    <option value="+92">🇵🇰 +92</option>
+                                    <option value="+91">🇮🇳 +91</option>
+                                    <option value="+1">🇺🇸 +1</option>
+                                </select>
+                                <InputText id="contactNumber" class="form-control" @bind-Value="contactModel.ContactNumber" placeholder="Your Contact Number" />
+                            </div>
+                            <ValidationMessage For="@(() => contactModel.ContactNumber)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Message *</label>
+                            <InputTextArea id="message" class="form-control" rows="5" @bind-Value="contactModel.Message" placeholder="Your Message" />
+                            <ValidationMessage For="@(() => contactModel.Message)" class="text-danger" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Send</button>
+                    </EditForm>
+
+                    <!-- Contact Information -->
+                    <div class="mt-4">
+                        <p class="text-muted">
+                            <i class="bi bi-geo-alt me-2"></i> Room-03 Ground Floor Al-Sahib Heights E11/4, Islamabad
+                        </p>
+                        <p class="text-muted">
+                            <i class="bi bi-telephone me-2"></i> 0304-5313474
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private ContactModel contactModel = new();
+
+    private void HandleSubmit()
+    {
+        Console.WriteLine($"Contact Form Submitted: Name={contactModel.Name}, Contact={contactModel.CountryCode}{contactModel.ContactNumber}, Message={contactModel.Message}");
+        // Reset form after submission
+        contactModel = new ContactModel();
+    }
+
+    public class ContactModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = string.Empty;
+
+        public string CountryCode { get; set; } = "+92"; // Default to Pakistan
+
+        [Required(ErrorMessage = "Contact number is required")]
+        [Phone(ErrorMessage = "Invalid phone number")]
+        public string ContactNumber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Message is required")]
+        public string Message { get; set; } = string.Empty;
+    }
+}

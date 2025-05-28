@@ -1,0 +1,97 @@
+@page "/login"
+@using Qalakar.Data
+@inject UserService UserService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+<PageTitle>Log In</PageTitle>
+<Navbar />
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="card shadow-lg p-4" style="max-width: 500px; width: 100%; border-radius: 15px;">
+        <div class="card-body">
+            <h3 class="card-title text-center mb-4">Log In to Your Account</h3>
+            <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger mb-3" />
+
+                <div class="mb-3 position-relative">
+                    <InputText id="email" @bind-Value="loginModel.Email" class="form-control" placeholder=" " />
+                    <label for="email" class="form-label floating-label">Email</label>
+                    <span class="position-absolute top-50 end-0 translate-middle-y me-3"><i class="bi bi-envelope"></i></span>
+                </div>
+
+                <div class="mb-4 position-relative">
+                    <InputText id="password" type="password" @bind-Value="loginModel.Password" class="form-control" placeholder=" " />
+                    <label for="password" class="form-label floating-label">Password</label>
+                    <span class="position-absolute top-50 end-0 translate-middle-y me-3"><i class="bi bi-lock"></i></span>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg" style="border-radius: 10px; transition: all 0.3s;">Log In</button>
+                </div>
+
+                <div class="text-center mt-3">
+                    <p>Don't have an account? <a href="/signup" class="text-primary">Sign Up</a></p>
+                </div>
+            </EditForm>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                    @errorMessage
+                    <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string errorMessage = string.Empty;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            var (isValid, fullName) = await UserService.ValidateUserAsync(loginModel.Email, loginModel.Password);
+            if (isValid && fullName != null)
+            {
+                errorMessage = string.Empty;
+                // Retrieve user details including Id
+                var user = await UserService.GetUserByEmailAsync(loginModel.Email);
+                if (user != null)
+                {
+                    // Redirect to dashboard with userId, email, and fullName
+                    var uri = NavigationManager.GetUriWithQueryParameters("dashboard", new Dictionary<string, object?>
+                    {
+                        { "login", "success" },
+                        { "userId", user.Id },
+                        { "email", loginModel.Email },
+                        { "fullName", fullName }
+                    });
+                    NavigationManager.NavigateTo(uri, forceLoad: true);
+                }
+                else
+                {
+                    errorMessage = "User details not found after validation.";
+                }
+            }
+            else
+            {
+                errorMessage = "Invalid email or password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error logging in: {ex.Message}";
+            Console.WriteLine($"Error during login: {ex.Message}");
+        }
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}
